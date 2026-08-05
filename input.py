@@ -11,7 +11,7 @@ class Polar:
     alpha_0 = -0.38 * DEG      
     C_N_alpha = 7.12499         
     alpha_stall = 15.3 * DEG
-    CN1 = 0.90              
+    CN1 = 0.920154          
 
     def __init__(self, path="S809_polar.csv"):
         if not os.path.isabs(path):

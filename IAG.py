@@ -21,14 +21,15 @@ class IAG:
         C_L   = (C_N_f + x5)*cos(a) - C_T(a_f)*sin(a)           (50,52)
     """
 
-    n_states = 5
-    names = ["x1", "x2", "x3", "x4", "x5"]
+    n_states = 6
+    names = ["x1", "x2", "x3", "x4", "x5", "tau_v"]
 
-
+    # Table 1, state-space IAG.  K_v omitted: it only enters the pitching
+    # moment through the centre of pressure, which is not computed here.
     A1, A2 = 0.3, 0.7
     b1, b2 = 0.7, 0.53
     K_a = 0.75
-    T_p, T_f, T_v = 1.7, 3.0, 6.0
+    T_p, T_f, T_v, T_vl = 1.7, 3.0, 6.0, 6.0
 
     def __init__(self, polar: Polar, chord: float):
         self.polar = polar
@@ -39,50 +40,59 @@ class IAG:
 
     def f_st(self, a):
         """Kirchhoff inversion, sinusoidal form."""
-        den = self.dCN * np.sin(a - self.a0)                              # (42)
+        den = self.dCN * np.sin(a - self.a0)                              
         if abs(den) < 1e-9:
             return 1.0
         s = 2 * np.sqrt(max(float(self.polar.cn(a)) / den, 0.0)) - 1
         return float(np.clip(s ** 2, 0.0, 1.0)) if s > 0 else 0.0
 
     def ct(self, a):
-        """C_T = C_D cos(a) - C_L sin(a), the sign Eq 52 needs."""
+        """C_T = C_D cos(a) - C_L sin(a)"""
         return float(self.polar.cd(a)) * np.cos(a) - float(self.polar.cl(a)) * np.sin(a)
+
+    def a34(self, alpha, alpha_dot, V):
+        return alpha + self.chord / (2 * max(V, 1e-9)) * alpha_dot
 
     def inner(self, y, alpha, alpha_dot, V):
         """(a_e, C_N_C, C_N_I, a_f) -- shared by rhs and coeffs."""
-        a_e = alpha * (1 - self.A1 - self.A2) + y[0] + y[1]               # (36)
-        cn_c = self.dCN * np.sin(a_e - self.a0)                           # (37)
-        cn_i = 4 * self.K_a * self.chord / max(V, 1e-9) * alpha_dot       # (38)
-        a_f = self.a0 + y[2] / self.dCN                                   # (41)
+        a_e = self.a34(alpha, alpha_dot, V) * (1 - self.A1 - self.A2) \
+            + y[0] + y[1]                                                 
+        cn_c = self.dCN * np.sin(a_e - self.a0)                           
+        cn_i = 4 * self.K_a * self.chord / max(V, 1e-9) * alpha_dot      
+        a_f = self.a0 + y[2] / self.dCN                                  
         return a_e, cn_c, cn_i, a_f
 
     def y0(self, alpha, V):
         x3 = self.dCN * np.sin(alpha - self.a0)
         return np.array([self.A1 * alpha, self.A2 * alpha,
-                         x3, self.f_st(self.a0 + x3 / self.dCN), 0.0])
+                         x3, self.f_st(self.a0 + x3 / self.dCN), 0.0, 0.0])
 
     def rhs(self, y, alpha, alpha_dot, V):
         Ts = self.chord / (2 * max(V, 1e-9))
-        x1, x2, x3, x4, x5 = y
+        x1, x2, x3, x4, x5, tv = y
         a_e, cn_c, cn_i, a_f = self.inner(y, alpha, alpha_dot, V)
 
-        x1d = (self.b1 * self.A1 * alpha - self.b1 * x1) / Ts             # (34)
-        x2d = (self.b2 * self.A2 * alpha - self.b2 * x2) / Ts             # (35)
-        x3d = (-x3 + cn_c + cn_i) / (Ts * self.T_p)                       # (40)
-        x4d = (-x4 + self.f_st(a_f)) / (Ts * self.T_f)                    # (43)
+        x1d = (self.b1 * self.A1 * alpha - self.b1 * x1) / Ts              
+        x2d = (self.b2 * self.A2 * alpha - self.b2 * x2) / Ts               
+        x3d = (-x3 + cn_c + cn_i) / (Ts * self.T_p)                      
+        x4d = (-x4 + self.f_st(a_f)) / (Ts * self.T_f)                   
 
-        # vortex lift, first two conditions of Eq 48 only               (46,48)
-        if alpha_dot > 0 and x3 > self.CN_crit:
+
+        on = alpha_dot > 0 and x3 > self.CN_crit and tv < self.T_vl      
+
+        if on:
             a_ed = alpha_dot * (1 - self.A1 - self.A2) + x1d + x2d
             s = np.sqrt(max(x4, 1e-12))
             cvd = (self.dCN * a_ed * (1 - 0.25 * (1 + s) ** 2)
                    - 0.25 * cn_c * (1 + s) * x4d / s)
         else:
             cvd = 0.0
-        x5d = -x5 / (Ts * self.T_v) + cvd                                 # (45)
+        x5d = -x5 / (Ts * self.T_v) + cvd                                
 
-        return np.array([x1d, x2d, x3d, x4d, x5d])
+        r = V / self.chord                                       
+        tvd = 0.45 * r if on else -r * tv                        
+
+        return np.array([x1d, x2d, x3d, x4d, x5d, tvd])
 
     def coeffs(self, y, alpha, alpha_dot, V):
         """Return (C_L, C_D)."""
@@ -90,7 +100,7 @@ class IAG:
         a_e, cn_c, cn_i, a_f = self.inner(y, alpha, alpha_dot, V)
         s = np.sqrt(x4)
 
-        cn_f = self.dCN * ((1 + s) / 2) ** 2 * np.sin(a_e - self.a0) + cn_i   # (44)
+        cn_f = self.dCN * ((1 + s) / 2) ** 2 * np.sin(a_e - self.a0) + cn_i  
         cl = (cn_f + y[4]) * np.cos(alpha) - self.ct(a_f) * np.sin(alpha)     # (50,52)
 
         cd_a, cd_0 = float(self.polar.cd(alpha)), float(self.polar.cd(self.a0))
