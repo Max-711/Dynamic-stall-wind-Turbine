@@ -13,7 +13,7 @@ class Oye:
     n_states = 1
     names = ["f"]
 
-    def __init__(self, polar: Polar, chord: float, T_f: float = 1.7):
+    def __init__(self, polar: Polar, chord: float, T_f: float = 3.0):
         self.polar = polar
         self.chord = chord
         self.T_f = T_f
@@ -22,8 +22,12 @@ class Oye:
         return np.array([float(self.polar.f_sep(alpha))])
 
     def rhs(self, y, alpha, alpha_dot, V):
-        tau = max(self.T_f * self.chord / max(V, 1e-9), 1e-9) #防止V=0
+        tau = max(self.T_f * self.chord / max(V, 1e-9), 1e-9) 
         return np.array([(float(self.polar.f_sep(alpha)) - y[0]) / tau])
+    
+    def clock(self, y, alpha_dot, V, dt):
+        """No discrete states in this model."""
+        return y
 
     def coeffs(self, y, alpha, alpha_dot, V):
         """Return (C_L, C_D)."""
