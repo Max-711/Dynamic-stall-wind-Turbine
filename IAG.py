@@ -62,6 +62,10 @@ class IAG:
         cn_i = 4 * self.K_a * self.chord / max(V, 1e-9) * alpha_dot       
         a_f = self.a0 + y[2] / self.dCN                                 
         return a_e, cn_c, cn_i, a_f
+    
+    def stalled(self, y, alpha, alpha_dot, V):
+        """Vortex generation: upstroke and above the critical load."""
+        return alpha_dot > 0 and y[2] > self.CN_crit
 
     def vortex_on(self, y, alpha, alpha_dot, V):
         return alpha_dot > 0 and y[2] > self.CN_crit and y[5] < self.T_vl
@@ -69,7 +73,7 @@ class IAG:
 
     def clock(self, y, alpha, alpha_dot, V):
         r = V / self.chord
-        return 0.45 * r if self.vortex_on(y, alpha, alpha_dot, V) else -r * y[5]
+        return 0.45 * r if self.stalled(y, alpha, alpha_dot, V) else -r * y[5]
 
     def y0(self, alpha, V):
         x3 = self.dCN * np.sin(alpha - self.a0)
