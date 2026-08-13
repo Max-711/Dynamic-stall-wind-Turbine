@@ -67,7 +67,9 @@ class IAG:
     def vortex_on(self, y, alpha, alpha_dot, V):
         return alpha_dot > 0 and y[2] > self.CN_crit and y[5] < self.T_vl
     
-
+    
+    def stalled(self, y, alpha, alpha_dot, V):
+        return alpha_dot > 0 and y[2] > self.CN_crit
 
 
     def y0(self, alpha, V):
@@ -98,7 +100,7 @@ class IAG:
         x5d = -x5 / (Ts * self.T_v) + cvd 
         
         
-        if (alpha_dot > 0):
+        if self.stalled(y, alpha, alpha_dot, V):
             delta = 1
         else:
             delta = 0
