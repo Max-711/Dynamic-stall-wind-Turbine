@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from input import Params, DEG
-from IAG import IAG
+from IAG_Continuous import IAG
+# from IAG_DisContinuous import IAG
 from motion import Motion
 from integrator import rk4
 from error import error
@@ -56,6 +57,8 @@ ax[2].set_title(f"hysteresis loop (cycle {e['cycle']})")
 ax[3].plot(t, r["C_L"] - cl_ref, color="crimson", lw=1.2)
 ax[3].axhline(0, color="k", lw=.8)
 ax[3].set_xlabel("t [s]"); ax[3].set_ylabel("present $-$ Bladed"); ax[3].set_title("residual")
+
+plt.plot()
 
 for a_ in ax:
     a_.grid(alpha=.3)

@@ -63,12 +63,16 @@ class IAG:
         a_f = self.a0 + y[2] / self.dCN                                 
         return a_e, cn_c, cn_i, a_f
     
+    def stalled(self, y, alpha, alpha_dot, V):
+        return alpha_dot > 0 and y[2] > self.CN_crit
 
     def vortex_on(self, y, alpha, alpha_dot, V):
         return alpha_dot > 0 and y[2] > self.CN_crit and y[5] < self.T_vl
     
 
-
+    def clock(self, y, alpha, alpha_dot, V):
+        r = V / self.chord
+        return 0.45 * r if self.stalled(y, alpha, alpha_dot, V) else -r * y[5]
 
     def y0(self, alpha, V):
         x3 = self.dCN * np.sin(alpha - self.a0)
@@ -77,9 +81,8 @@ class IAG:
 
     def rhs(self, y, alpha, alpha_dot, V):
         Ts = self.chord / (2 * max(V, 1e-9))
-        x1, x2, x3, x4, x5, x6 = y
+        x1, x2, x3, x4, x5, tv = y
         a_e, cn_c, cn_i, a_f = self.inner(y, alpha, alpha_dot, V)
-
 
         a34 = self.a34(alpha, alpha_dot, V)
         x1d = (self.b1 * self.A1 * a34 - self.b1 * x1) / Ts              
@@ -87,6 +90,7 @@ class IAG:
         x3d = (-x3 + cn_c + cn_i) / (Ts * self.T_p)                      
         x4d = (-x4 + self.f_st(a_f)) / (Ts * self.T_f)  
 
+        tvd = self.clock(y, alpha, alpha_dot, V)
 
         if self.vortex_on(y, alpha, alpha_dot, V):
             a_ed = alpha_dot * (1 - self.A1 - self.A2) + x1d + x2d
@@ -95,17 +99,9 @@ class IAG:
                    - 0.25 * cn_c * (1 + s) * x4d / s)
         else:
             cvd = 0.0
-        x5d = -x5 / (Ts * self.T_v) + cvd 
-        
-        
-        if (alpha_dot > 0):
-            delta = 1
-        else:
-            delta = 0
-        
-        x6d = V/self.chord * ( 0.45 * delta - (1- delta) * x6)  # This is a placeholder for the actual clock function                     
+        x5d = -x5 / (Ts * self.T_v) + cvd                                 
 
-        return np.array([x1d, x2d, x3d, x4d, x5d, x6d])
+        return np.array([x1d, x2d, x3d, x4d, x5d, tvd])
 
     def coeffs(self, y, alpha, alpha_dot, V):
         """Return (C_L, C_D)."""
