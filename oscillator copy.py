@@ -11,6 +11,7 @@
 import numpy as np
 from input import Params, DEG
 from IAG import IAG 
+from oye import Oye     
 
 
 class Oscillator:
@@ -30,6 +31,31 @@ class Oscillator:
     def y0(self, x0=1e-3, xd0=0.0):
         a, V = self.kinematics(xd0)
         return np.concatenate([[x0, xd0], self.aero.y0(a, V)])
+    
+    def states(self, y):
+        return y[0], y[1], y[2:]
+    
+    def aero_states(self, y):
+        return y[2:]
+    
+    def aero_outputs(self, y):
+        p = self.p
+        x, xd = y[0], y[1]
+        ya = y[2:]
+        alpha, V = self.kinematics(xd)
+        cl, cd = self.aero.coeffs(ya, alpha, 0.0, V)
+        return cl, cd       
+    
+    def aero_forces(self, y):
+        p = self.p
+        x, xd = y[0], y[1]
+        ya = y[2:]
+        alpha, V = self.kinematics(xd)
+        cl, cd = self.aero.coeffs(ya, alpha, 0.0, V)
+        F = 0.5 * p.rho * V ** 2 * p.chord * (cl * np.cos(alpha) + cd * np.sin(alpha))
+        return F
+    
+
 
     def rhs(self, y):
         p = self.p

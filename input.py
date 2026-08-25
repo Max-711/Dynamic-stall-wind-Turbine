@@ -79,7 +79,7 @@ class Params:
     mass: float = 130.019               # kg/m
     f_n: float = 0.687                  # Hz,  first edgewise
     zeta: float = 0.005                 # ElastoDyn BldEdDmp1 = 0.48 %
-    k3_over_k1: float = 0.0             # 0 = linear;  1e5 = preliminary report
+    k3_over_k1: float = 0.0             
     alpha_mean: float = 18.5 * DEG
     U: float = 4.0                      # m/s
     T_f: float = 3.0                    # tau = T_f * chord / V
