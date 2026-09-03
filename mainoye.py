@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -54,5 +55,5 @@ for a_ in ax:
     a_.grid(alpha=.3)
     if a_ is not ax[2]:
         a_.legend(fontsize=8)
-plt.tight_layout(); plt.savefig("fig_verify_oye.png", dpi=140)
+plt.tight_layout(); plt.savefig(f"{sys.argv[1] if len(sys.argv) > 1 else '.'}/fig_verify_oye.png", dpi=140)
 print("\n  -> fig_verify_oye.png")

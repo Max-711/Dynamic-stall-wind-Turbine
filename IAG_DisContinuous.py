@@ -8,18 +8,34 @@ class IAG:
 
         Ts * dx1/dt   = b1*A1*a - b1*x1                         (34)
         Ts * dx2/dt   = b2*A2*a - b2*x2                         (35)
-        Ts*Tp*dx3/dt  = -x3 + C_N_P                             (40)
+        Ts*Tp*dx3/dt  = -x3 + (C_N_C + C_N_i)                   (40)
         Ts*Tf*dx4/dt  = -x4 + f_st(a_f)                         (43)
         Ts*Tv*dx5/dt  = -x5 + Ts*Tv*dC_V/dt                     (45)
         tau_v         : discrete accumulator                    (49)
 
         a_e   = a34*(1-A1-A2) + x1 + x2                         (36)
         C_N_C = dCN*sin(a_e - a0)                               (37)
-        C_N_I = 4*Ka*(c/V)*a_dot                                (38)
-        C_N_P = C_N_C + C_N_I                                   (39)
+            attached-flow circulatory force, before separation
+        C_N_i = 4*Ka*(c/V)*a_dot                                (38)
+            impulsive force
         a_f   = a0 + x3/dCN                                     (41)
-        C_N_f = dCN*((1+sqrt(x4))/2)^2*sin(a_e-a0) + C_N_I      (44)
-        C_L   = (C_N_f + x5)*cos(a) - C_T(a_f)*sin(a)           (50,52)
+        C_N_f = C_N_C*((1+sqrt(x4))/2)^2                        (44)
+            circulatory force retained after separation
+
+    The normal force is the sum of three independent contributions
+    (thesis Eq. 5.2); no intermediate quantity is a partial sum of them:
+
+        C_N   = C_N_f + C_N_i + C_N_v
+                 |        |        |
+                 |        |        +-- vortex force,     C_N_v = x5
+                 |        +----------- impulsive force,  Eq (38)
+                 +-------------------- circulatory force, Eq (44)
+
+        C_L   = C_N*cos(a) - C_T(a_f)*sin(a)                    (50,52)
+
+    C_N_C + C_N_i is the unseparated (potential-flow) force.  It appears
+    only as the driver of the pressure lag x3, Eq (40); it is not a
+    component of C_N.
 
     """
 
@@ -109,8 +125,11 @@ class IAG:
         a_e, cn_c, cn_i, a_f = self.inner(y, alpha, alpha_dot, V)
         s = np.sqrt(x4)
 
-        cn_f = self.dCN * ((1 + s) / 2) ** 2 * np.sin(a_e - self.a0) + cn_i   # (44)
-        cl = (cn_f + y[4]) * np.cos(alpha) - self.ct(a_f) * np.sin(alpha)     # (50,52)
+        # the three independent contributions to C_N (thesis Eq. 5.2)
+        cn_f = self.dCN * ((1 + s) / 2) ** 2 * np.sin(a_e - self.a0)  # circulatory (44)
+        cn_v = y[4]                                                   # vortex
+        cn = cn_f + cn_i + cn_v                                       # C_N
+        cl = cn * np.cos(alpha) - self.ct(a_f) * np.sin(alpha)        # (50,52)
 
         cd_a, cd_0 = float(self.polar.cd(alpha)), float(self.polar.cd(self.a0))
         fv = np.sqrt(self.f_st(alpha))

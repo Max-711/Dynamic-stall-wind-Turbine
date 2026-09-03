@@ -1,6 +1,7 @@
+import sys
 import numpy as np
 import matplotlib
-# matplotlib.use("Agg")
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from input import Params, DEG
@@ -11,6 +12,7 @@ from integrator import rk4
 from error import error
 from loadreference import load_reference
 
+OUT = sys.argv[1] if len(sys.argv) > 1 else "."   # where the figures are written
 CHORD, U = 0.25, 10.0
 PERIOD = 2 * np.pi / 5.6
 
@@ -47,37 +49,40 @@ print(f"\n  x5 (vortex C_N) range disc {r_d['x5'].min():+.4f} .. {r_d['x5'].max(
 
 e = e_d
 m = (t >= e["cycle"] * PERIOD) & (t < (e["cycle"] + 1) * PERIOD)
-fig, ax = plt.subplots(1, 4, figsize=(19.5, 4.3))
-
-
-ax[0].plot(t, r_d["tau_v"], "r-", lw=1.2, label="disc")
-ax[0].plot(t, r_c["tau_v"], "b--", lw=1.2, label="cont")
-ax[0].axhline(IAG_D.T_vl, color="k", ls="--", lw=1, label=rf"$T_{{vl}}$ = {IAG_D.T_vl:g}")
-ax[0].set_xlabel("t [s]"); ax[0].set_ylabel(r"$\tau_v$"); ax[0].set_title(r"$\tau_v(t)$")
-
-ax[1].plot(alpha[m]/DEG, r_d["tau_v"][m], "r-", lw=1.5, label="disc")
-ax[1].plot(alpha[m]/DEG, r_c["tau_v"][m], "b--", lw=1.5, label="cont")
-ax[1].axhline(IAG_D.T_vl, color="k", ls="--", lw=1, label=rf"$T_{{vl}}$ = {IAG_D.T_vl:g}")
-ax[1].set_xlabel(r"$\alpha$ [deg]"); ax[1].set_ylabel(r"$\tau_v$")
-ax[1].set_title(f"hysteresis loop (cycle {e['cycle']})")
-
 aa = np.linspace(8, 28, 300) * DEG
-ax[2].plot(alpha[m]/DEG, cl_ref[m], "k-", lw=2, label="Bladed")
-ax[2].plot(alpha[m]/DEG, r_d["C_L"][m], "r-", lw=1.5, label="IAG disc")
-ax[2].plot(alpha[m]/DEG, r_c["C_L"][m], "b--", lw=1.5, label="IAG cont")
-ax[2].plot(aa/DEG, p.polar.cl(aa), color="0.7", ls="--", lw=1, label="static")
-ax[2].set_xlabel(r"$\alpha$ [deg]"); ax[2].set_ylabel("$C_L$")
-ax[2].set_title(f"hysteresis loop (cycle {e['cycle']})")
 
-ax[3].plot(t, r_d["C_L"] - cl_ref, color="r", lw=1.2, label="disc")
-ax[3].plot(t, r_c["C_L"] - cl_ref, color="b", ls="--", lw=1.2, label="cont")
-ax[3].axhline(0, color="k", lw=.8)
-ax[3].set_xlabel("t [s]"); ax[3].set_ylabel("present $-$ Bladed"); ax[3].set_title("residual")
+# --- Fig 1: lift against the Bladed reference -------------------------
+f1, a1 = plt.subplots(1, 2, figsize=(11, 4.5))
 
-plt.plot()
+a1[0].plot(alpha[m]/DEG, cl_ref[m], "k-", lw=2, label="Bladed")
+a1[0].plot(alpha[m]/DEG, r_d["C_L"][m], "r-", lw=1.5, label="IAG disc")
+a1[0].plot(alpha[m]/DEG, r_c["C_L"][m], "b--", lw=1.5, label="IAG cont")
+a1[0].plot(aa/DEG, p.polar.cl(aa), color="0.7", ls="--", lw=1, label="static")
+a1[0].set_xlabel(r"$\alpha$ [deg]"); a1[0].set_ylabel("$C_L$")
+a1[0].set_title(f"(a) hysteresis loop (cycle {e['cycle']})")
 
-for a_ in ax:
-    a_.grid(alpha=.3)
-    a_.legend(fontsize=8)
-plt.tight_layout(); plt.savefig("fig_verify_iag.png", dpi=140)
-print("\n  -> fig_verify_iag.png")
+a1[1].plot(t, r_d["C_L"] - cl_ref, "r-", lw=1.2, label="disc")
+a1[1].plot(t, r_c["C_L"] - cl_ref, "b--", lw=1.2, label="cont")
+a1[1].axhline(0, color="k", lw=.8)
+a1[1].set_xlabel("t [s]"); a1[1].set_ylabel("present $-$ Bladed")
+a1[1].set_title("(b) residual")
+
+# --- Fig 2: vortex states --------------------------------------------
+f2, a2 = plt.subplots(1, 2, figsize=(11, 4.5))
+
+a2[0].plot(t, r_d["tau_v"], "r-", lw=1.2, label="$x_6$")
+a2[0].axhline(IAG_D.T_vl, color="k", ls="--", lw=1, label=rf"$T_{{VL}}$ = {IAG_D.T_vl:g}")
+a2[0].set_xlabel("t [s]"); a2[0].set_ylabel("$x_6$")
+a2[0].set_title("(a) vortex travel state")
+
+a2[1].plot(t, r_c["C_L"] - r_d["C_L"], "g-", lw=1.2, label="cont $-$ disc")
+a2[1].axhline(0, color="k", lw=.8)
+a2[1].set_xlabel("t [s]"); a2[1].set_ylabel("$\\Delta C_L$")
+a2[1].set_title("(b) cost of smoothing")
+
+for fig, axs, name in ((f1, a1, "fig_iag_cl"), (f2, a2, "fig_iag_vortex")):
+    for a_ in axs:
+        a_.grid(alpha=.3); a_.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(f"{OUT}/{name}.pdf"); fig.savefig(f"{OUT}/{name}.png", dpi=140)
+print("\n  -> fig_iag_cl.pdf, fig_iag_vortex.pdf")

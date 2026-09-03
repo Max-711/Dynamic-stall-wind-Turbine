@@ -1,0 +1,47 @@
+T1  kinematics
+  kappa vs d(alpha)/d(xd), xd=-2.0   err =  1.740e-11   tol =  1.0e-08   PASS  
+  V vs sqrt(Ux^2+(Uy-xd)^2), xd=-2.0 err =  0.000e+00   tol =  1.0e-12   PASS  
+  kappa vs d(alpha)/d(xd), xd=-0.3   err =  2.186e-11   tol =  1.0e-08   PASS  
+  V vs sqrt(Ux^2+(Uy-xd)^2), xd=-0.3 err =  0.000e+00   tol =  1.0e-12   PASS  
+  kappa vs d(alpha)/d(xd), xd=+0.0   err =  3.959e-11   tol =  1.0e-08   PASS  
+  V vs sqrt(Ux^2+(Uy-xd)^2), xd=+0.0 err =  0.000e+00   tol =  1.0e-12   PASS  
+  kappa vs d(alpha)/d(xd), xd=+0.7   err =  7.327e-12   tol =  1.0e-08   PASS  
+  V vs sqrt(Ux^2+(Uy-xd)^2), xd=+0.7 err =  0.000e+00   tol =  1.0e-12   PASS  
+  kappa vs d(alpha)/d(xd), xd=+3.0   err =  4.766e-11   tol =  1.0e-08   PASS  
+  V vs sqrt(Ux^2+(Uy-xd)^2), xd=+3.0 err =  0.000e+00   tol =  1.0e-12   PASS  
+
+T2  aerodynamic force is affine in alpha_dot
+  max |F - linear fit|               err =  2.842e-14   tol =  1.0e-10   PASS  
+
+T3  added-mass elimination vs implicit root solve
+  closed form vs brentq root (200 states) err =  1.776e-15   tol =  1.0e-08   PASS  
+
+T4  free decay,  m*xdd + c*xd + k*x = 0
+  max |x_num - x_exact| / x0         err =  1.548e-09   tol =  1.0e-08   PASS  (zeta=0.005, f_n=0.687 Hz)
+
+T5  step force,  F = F0 for t > 0
+  max |x_num - x_exact| (step)       err =  2.829e-09   tol =  1.0e-08   PASS  
+  static deflection x(400 s) -> F0/k err =  5.052e-05   tol =  5.0e-03   PASS  (F0/k = 206.3906 mm)
+
+T6  harmonic force,  F = F0 cos(Om t)   [amplitude and phase]
+  steady state vs exact, Om/wn = 0.5 err =  7.652e-11   tol =  1.0e-08   PASS  (exact IC, no transient)
+  amplitude, Om/wn = 0.5             err =  2.222e-05   tol =  2.0e-04   PASS  A = 275.1814 mm
+  phase,     Om/wn = 0.5             err =  2.274e-11   tol =  2.0e-03   PASS  phi =   -0.38 deg
+  steady state vs exact, Om/wn = 1.0 err =  1.252e-09   tol =  1.0e-08   PASS  (exact IC, no transient)
+  amplitude, Om/wn = 1.0             err =  7.367e-11   tol =  2.0e-04   PASS  A = 20639.0628 mm
+  phase,     Om/wn = 1.0             err =  5.775e-11   tol =  2.0e-03   PASS  phi =  -90.00 deg
+  steady state vs exact, Om/wn = 2.0 err =  9.618e-11   tol =  1.0e-08   PASS  (exact IC, no transient)
+  amplitude, Om/wn = 2.0             err =  2.222e-05   tol =  2.0e-04   PASS  A = 68.7953 mm
+  phase,     Om/wn = 2.0             err =  3.582e-11   tol =  2.0e-03   PASS  phi = -179.62 deg
+
+T7  energy conservation,  zero damping, no force
+  max |E - E0| / E0                  err =  1.038e-11   tol =  1.0e-10   PASS  
+
+T8  solve_ivp vs fixed-step RK4, FULL coupled system
+  max |z_RK4 - z_solve_ivp| (8 states) err =  4.154e-12   tol =  1.0e-06   PASS  
+
+T9  Jacobian eigenvalue vs decay of the nonlinear simulation
+  growth rate, U =  4.0 m/s          err =  1.650e-04   tol =  2.0e-02   PASS  eig -0.10497  sim -0.10495  1/s
+  frequency,   U =  4.0 m/s          err =  3.904e-05   tol =  2.0e-02   PASS  eig 0.65682  sim 0.65679  Hz
+  growth rate, U = 20.0 m/s          err =  8.540e-05   tol =  2.0e-02   PASS  eig -0.35261  sim -0.35264  1/s
+  frequency,   U = 20.0 m/s          err =  1.032e-05   tol =  2.0e-02   PASS  eig 0.57761  sim 0.57760  Hz
